@@ -2,6 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+import matplotlib.animation as animation
 import scipy.signal as sg
 import sys
 import os
@@ -10,9 +11,9 @@ if (len(sys.argv) != 2):
     print("Invocation: %s <Binary File>"%(sys.argv[0]))
     sys.exit(0)
 fname = sys.argv[1]
-basename = os.path.basename(fname)
+basename = os.path.basename(fname).split('.')[0]
 dirname = os.path.dirname(fname)
-outputname = dirname + basename + '.mp4'
+outputname = dirname + '/' + basename + '.mp4'
 words = basename.split('_')
 date = words[0][0:4] + "-" + words[0][4:6] + "-" + words[0][6:8]
 start_time = words[1][0:2] + ":" + words[1][2:4] + ":" + words[1][4:6]
@@ -46,6 +47,7 @@ t_win = int(t_win_/(sampwindow*period)) # 20 seconds == these many lines
 t_scale = 1 # int(sampwindow/t_win) # how many extra lines per line
 t_scale = 1 if t_scale < 1 else t_scale
 print("Time scale = %d, window height = %d"%(t_scale, t_win))
+print("Output: %s"%(outputname))
 image = np.zeros((sampwindow, t_win * t_scale), dtype = float) - 140 # 140 dB
 extent = [freq.min(), freq.max(), -t_win_, 0]
 # %%
@@ -54,7 +56,7 @@ maxhold = np.zeros(freq.shape, dtype = float) - np.inf
 minhold = np.zeros(freq.shape, dtype = float) + np.inf
 # %%
 fig, ax = plt.subplots()
-im = ax.imshow(image.transpose(), origin = 'upper', extent=extent, animated = True, vmin = -50, vmax = -10, aspect = 'auto')
+im = ax.imshow(image.transpose(), origin = 'upper', extent=extent, animated = True, vmin = -50, vmax = -20, aspect = 'auto')
 fig.colorbar(im)
 ax.set_xlim(cfreq - 0.5 * bw, cfreq + 0.5 * bw)
 
@@ -63,6 +65,7 @@ def init():
     return [im]
 
 def update(frame):
+    if (frame > 0) and (frame % 100) == 0: print('File %s frame %d/%d'%(basename, frame, num_frames))
     fig.suptitle("Date: %s, Start: %s, NORAD ID: %s, Length: %s\nTime: %.2f/%.2f s"%(date, start_time, norad_id, passlength, (frame + 1)*period*sampwindow, num_frames*period*sampwindow))
     ydata = 20*np.log10(np.abs(np.fft.fftshift(np.fft.fft(bbdata[frame*sampwindow:(frame+1)*sampwindow], norm="ortho"))))
     # 1. Move old frames "up"
@@ -76,6 +79,6 @@ def update(frame):
     im.set_array(image.transpose())
     return [im]
 
-ani = FuncAnimation(fig, update, frames=num_frames, interval = period*sampwindow*1e3/10, blit=False, repeat = True)
+ani = FuncAnimation(fig, update, frames=num_frames, interval = period*sampwindow*1e3, blit=False, repeat = False)
 ani.save(outputname)
 # %%
