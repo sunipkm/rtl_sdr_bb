@@ -6,6 +6,14 @@ import matplotlib.animation as animation
 import scipy.signal as sg
 import sys
 import os
+
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib import rc
+import matplotlib
+rc('font',**{'family':'serif','serif':['Times']})
+## for Palatino and other serif fonts use:
+#rc('font',**{'family':'serif','serif':['Palatino']})
+rc('text', usetex=False)
 # %%
 if (len(sys.argv) != 2):
     print("Invocation: %s <Binary File>"%(sys.argv[0]))
@@ -49,16 +57,25 @@ t_scale = 1 if t_scale < 1 else t_scale
 print("Time scale = %d, window height = %d"%(t_scale, t_win))
 print("Output: %s"%(outputname))
 image = np.zeros((sampwindow, t_win * t_scale), dtype = float) - 140 # 140 dB
-extent = [freq.min(), freq.max(), -t_win_, 0]
+extent = [(freq.min() - cfreq) * 1e-6, (freq.max() - cfreq) * 1e-6, -t_win_, 0]
 # %%
 # Set up max hold
 maxhold = np.zeros(freq.shape, dtype = float) - np.inf
 minhold = np.zeros(freq.shape, dtype = float) + np.inf
 # %%
-fig, ax = plt.subplots()
+matplotlib.rcParams.update({'font.size': 10})
+matplotlib.rcParams.update({'axes.titlesize': 10})
+matplotlib.rcParams.update({'axes.labelsize': 10})
+
+fig, ax = plt.subplots(figsize=(6.5, 4))
+fig.set_dpi(300)
 im = ax.imshow(image.transpose(), origin = 'upper', extent=extent, animated = True, vmin = -50, vmax = -20, aspect = 'auto')
-fig.colorbar(im)
-ax.set_xlim(cfreq - 0.5 * bw, cfreq + 0.5 * bw)
+cbar = fig.colorbar(im)
+cbar.ax.set_ylabel('dB', rotation = 90)
+ax.set_xlim(- 0.5 * bw / 1e6, 0.5 * bw / 1e6)
+ax.set_xlabel('Frequency (MHz), Offset %.2f MHz'%(cfreq / 1e6))
+ax.set_ylabel('Time offset (s)')
+ax.ticklabel_format(axis = 'x', style = 'sci', useMathText=True)
 
 def init():
     im.set_data(image.transpose())
